@@ -1,0 +1,18 @@
+{
+  "MessageHeader": { "MessageType": "ClaimMovement", "StandardVersion": "ACORD-GRLC-Gen2" },
+  "Contract": {
+    "ContractReference": "CERT-PROP-XOL-JP-001",
+    "CoveragePeriod": { "StartDate": "2024-01-01", "EndDate": "2024-12-31" },
+    "Layer": { "AttachmentPoint": "5000000", "Limit": "10000000", "CurrencyCode": "JPY" },
+    "MarketParticipation": { "SignedLinePercentage": "50.00" },
+    "ReinstatementProvisions": { "Count": 1, "RatePercentage": "50.00" },
+    "Exclusions": { "Flood": true, "Earthquake": false }
+  },
+  "ClaimMovement": {
+    "ClaimReference": "CLM-2024-JP-0001",
+    "DateOfLoss": "2024-06-11",
+    "CauseOfLossCode": "EQ",
+    "LossAdjusterReportStatus": "Completed",
+    "FinancialAmounts": { "TotalIncurred": "12000000", "CurrencyCode": "JPY" }
+  }
+}

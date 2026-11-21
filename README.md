@@ -39,6 +39,12 @@ python3 tests/run_tests.py  # 8 fixtures
 `catala` is not vendored. Any 1.2+ build works; `clerk` is not required (see
 *Environment*).
 
+## Operational guide
+
+See [`docs/FACULTATIVE_GUIDE.md`](docs/FACULTATIVE_GUIDE.md) for the runbook, the
+ACORD GRLC mapping tables (ISO 4217 exponents, peril codelist, document
+indicators) and the failure modes.
+
 ## Layout
 
 ```
@@ -50,7 +56,10 @@ contracts/property_xol_v1.catala_en   the Screen scope
 contracts/terms.json          treaty under test
 contracts/claims.json         eight sample claims
 tests/test_property_xol.catala_en     fixture specification (8 edge cases)
-tests/run_tests.py            executes the fixtures
+tests/run_tests.py            executes the fixtures (26 assertions)
+src/acord_adapter.py          ACORD GRLC ↔ canonical integers
+schemas/acord_grlc/           Placing and ClaimMovement samples
+docs/FACULTATIVE_GUIDE.md     operations and engineering guide
 lean_bridge/Runner.lean       the settlement bridge
 src/adjudicator.py            Catala screen + Lean settle + report objects
 src/cli.py                    CLI

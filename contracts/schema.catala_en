@@ -38,7 +38,8 @@ declaration enumeration PendingKind:
   -- AdjusterCertification
 
 declaration structure Claim:
-  data claimId content integer
+  # The claim reference is carried outside Catala: the language has no string
+  # type in 1.2, and the reference is not part of the coverage decision.
   data lossAmount content integer
   data peril content Peril
   data incidentDay content integer

@@ -1,0 +1,11 @@
+{
+  "MessageHeader": { "MessageType": "Placing", "StandardVersion": "ACORD-GRLC-Gen2" },
+  "Contract": {
+    "ContractReference": "CERT-PROP-XOL-2024-001",
+    "CoveragePeriod": { "StartDate": "2024-01-01", "EndDate": "2024-12-31" },
+    "Layer": { "AttachmentPoint": "50000.00", "Limit": "100000.00", "CurrencyCode": "USD" },
+    "MarketParticipation": { "SignedLinePercentage": "25.00" },
+    "ReinstatementProvisions": { "Count": 2, "RatePercentage": "100.00" },
+    "Exclusions": { "Flood": true, "Earthquake": true }
+  }
+}

@@ -1,16 +1,22 @@
 /-
   Runner — the verified settlement bridge.
 
-  Reads one claim's numbers on the command line, applies the layer using
-  `ReinsuranceLean.applyOccurrenceToLayer`, and prints the settlement. The
-  arithmetic is entirely `ReinsuranceLean`'s; this file only parses and prints.
+  Applies one occurrence to a layer using `ReinsuranceLean.applyOccurrenceToLayer`
+  (100% layer arithmetic), then takes the reinsurer's signed-line share with
+  `ReinsuranceLean.applyBps`. Every number below is `Nat` minor units or basis
+  points; there is no floating point and no external dependency.
 
   Usage:
     Runner <retention> <limit> <reinstatements> <rateBps>
-           <remainingAggregate> <cededSoFar> <loss>
+           <remainingAggregate> <priorCededPaid> <loss> <participationBps>
 
-  Output (one line):
-    <cededThisEvent> <remainingAggregate'> <premiumTotal'> <INVARIANT_OK|VIOLATION>
+  Output (one line, space separated):
+    <ceded100> <retainedByCedent> <premium100> <totalCededPaid>
+    <remainingAggregate> <reinsurerCeded> <reinsurerPremium> <STATUS>
+
+  STATUS is `INVARIANT_OK` or `VIOLATION`; a violation exits non-zero, because
+  the kernel proves the invariant and a failure means this bridge called the
+  wrong function.
 -/
 import ReinsuranceLean
 
@@ -20,26 +26,41 @@ def parseNat (s : String) : Nat := (s.toNat?).getD 0
 
 def main (args : List String) : IO Unit := do
   match args with
-  | [retS, limS, reS, rateS, remS, cedS, lossS] =>
+  | [retS, limS, reS, rateS, remS, priorS, lossS, partS] =>
+    let retention := parseNat retS
+    let limit := parseNat limS
+    let reinstatements := parseNat reS
+    let rateBps := parseNat rateS
+    let remaining := parseNat remS
+    let priorCeded := parseNat priorS
+    let loss := parseNat lossS
+    let participationBps := parseNat partS
     let layer : XoLLayer :=
       { name := "screened-layer"
-        retention := parseNat retS
-        limit := parseNat limS
-        reinstatements := parseNat reS
-        reinstatementRateBps := parseNat rateS
+        retention := retention
+        limit := limit
+        reinstatements := reinstatements
+        reinstatementRateBps := rateBps
         proRataTime := false }
     let st : TreatyState :=
-      { remainingAggregate := parseNat remS
-        totalCededPaid := parseNat cedS
+      { remainingAggregate := remaining
+        totalCededPaid := priorCeded
         totalRetainedByCedent := 0
         reinstatementPremiumPaid := 0 }
-    let st' := applyOccurrenceToLayer layer st (parseNat lossS)
-    let ceded := st'.totalCededPaid - st.totalCededPaid
-    -- Belt and braces: the kernel proves this, but the bridge should not be
-    -- trusted to have called the right function.
-    let cap := layer.limit * (1 + layer.reinstatements)
+    let st' := applyOccurrenceToLayer layer st loss
+    let ceded100 := st'.totalCededPaid - st.totalCededPaid
+    let premium100 := st'.reinstatementPremiumPaid - st.reinstatementPremiumPaid
+    -- Signed line: the reinsurer's share of the 100% figures.
+    let reinsurerCeded := applyBps ceded100 participationBps
+    let reinsurerPremium := applyBps premium100 participationBps
+    let cap := limit * (1 + reinstatements)
     let ok := decide (st'.totalCededPaid + st'.remainingAggregate = cap)
-    IO.println s!"{ceded} {st'.remainingAggregate} {st'.reinstatementPremiumPaid} {if ok then "INVARIANT_OK" else "VIOLATION"}"
+    let status := if ok then "INVARIANT_OK" else "VIOLATION"
+    IO.println s!"{ceded100} {st'.totalRetainedByCedent} {premium100} \
+      {st'.totalCededPaid} {st'.remainingAggregate} {reinsurerCeded} \
+      {reinsurerPremium} {status}"
+    if !ok then IO.Process.exit 3
   | _ =>
-    IO.eprintln "usage: Runner <retention> <limit> <reinstatements> <rateBps> <remaining> <cededSoFar> <loss>"
+    IO.eprintln "usage: Runner <retention> <limit> <reinstatements> <rateBps> \
+      <remaining> <priorCeded> <loss> <participationBps>"
     IO.Process.exit 2

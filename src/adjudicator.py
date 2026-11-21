@@ -1,14 +1,8 @@
 """Adjudicator — Catala screening + ReinsuranceLean settlement.
 
-The division of labour is strict:
-
-* Catala decides **coverage**. It returns one of Covered / Excluded /
-  Incomplete, with typed clause citations. It never computes money.
-* ReinsuranceLean computes **money**. It receives only Covered claims and
-  returns exact integer cessions, with the kernel-checked capacity invariant
-  re-verified at runtime by the bridge.
-
-Nothing here re-implements either side.
+Catala decides coverage and never computes money. ReinsuranceLean computes money
+and never decides coverage. This module is the only place that knows both, and
+it knows nothing about ACORD.
 """
 from __future__ import annotations
 
@@ -21,14 +15,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "build"
-PKG = BUILD / "pkg"
 RUNTIME = Path(
     os.environ.get(
         "CATALA_PY_RUNTIME",
         "/tmp/catala-root/usr/lib/x86_64-linux-gnu/ocaml/5.3.0/catala/runtime/python/src/catala",
     )
 )
-
 if str(BUILD) not in sys.path:
     sys.path.insert(0, str(BUILD))
 if str(RUNTIME) not in sys.path:
@@ -39,15 +31,31 @@ from pkg import property_xol_v1 as catala  # noqa: E402
 
 @dataclass
 class Settlement:
-    ceded: int
+    ceded100: int
+    retained_by_cedent: int
+    premium100: int
+    total_ceded_paid: int
     remaining_aggregate: int
-    reinstatement_premium: int
+    reinsurer_ceded: int
+    reinsurer_premium: int
     invariant: str
+
+    def to_dict(self) -> dict:
+        return {
+            "ceded100": self.ceded100,
+            "retainedByCedent": self.retained_by_cedent,
+            "premium100": self.premium100,
+            "totalCededPaid": self.total_ceded_paid,
+            "remainingAggregate": self.remaining_aggregate,
+            "reinsurerCeded": self.reinsurer_ceded,
+            "reinsurerPremium": self.reinsurer_premium,
+            "invariant": self.invariant,
+        }
 
 
 @dataclass
 class Adjudication:
-    claim_id: int
+    claim_id: str
     verdict: str
     cited_clauses: list[str] = field(default_factory=list)
     pending: list[str] = field(default_factory=list)
@@ -59,14 +67,7 @@ class Adjudication:
             "verdict": self.verdict,
             "citedClauses": self.cited_clauses,
             "pending": self.pending,
-            "settlement": None
-            if self.settlement is None
-            else {
-                "ceded": self.settlement.ceded,
-                "remainingAggregate": self.settlement.remaining_aggregate,
-                "reinstatementPremium": self.settlement.reinstatement_premium,
-                "invariant": self.settlement.invariant,
-            },
+            "settlement": None if self.settlement is None else self.settlement.to_dict(),
         }
 
 
@@ -75,9 +76,8 @@ def _enum_name(value) -> str:
 
 
 def screen(claim: dict, terms: dict) -> Adjudication:
-    """Run the Catala coverage screen. No money is computed here."""
+    """Catala coverage screen. Money is not touched."""
     c = catala.Claim(
-        claimId=claim["claimId"],
         lossAmount=claim["lossAmount"],
         peril=catala.Peril(catala.Peril.Code[claim["peril"]]),
         incidentDay=claim["incidentDay"],
@@ -103,38 +103,81 @@ def screen(claim: dict, terms: dict) -> Adjudication:
     )
 
 
-def settle(claim: dict, terms: dict, runner: str | None = None) -> Settlement:
-    """Ask ReinsuranceLean for the cession. Covered claims only."""
-    runner = runner or os.environ.get(
-        "RUNNER", str(ROOT / "scripts" / "run_lean.sh")
-    )
+def settle(
+    claim: dict,
+    terms: dict,
+    prior: dict | None = None,
+    runner: str | None = None,
+) -> Settlement:
+    """Ask ReinsuranceLean for the 100% figures and the signed-line share."""
+    runner = runner or os.environ.get("RUNNER", str(ROOT / "scripts" / "run_lean.sh"))
+    prior = prior or {}
+    cap = terms["limit"] * (1 + terms["reinstatements"])
     args = [
         str(terms["retention"]),
         str(terms["limit"]),
         str(terms["reinstatements"]),
         str(terms["reinstatementRateBps"]),
-        str(terms.get("remainingAggregate", terms["limit"] * (1 + terms["reinstatements"]))),
-        str(terms.get("cededSoFar", 0)),
+        str(prior.get("remainingAggregate", cap)),
+        str(prior.get("totalCededPaid", 0)),
         str(claim["lossAmount"]),
+        str(terms.get("participationBps", 10000)),
     ]
     proc = subprocess.run([runner, *args], capture_output=True, text=True, timeout=300)
     if proc.returncode != 0:
-        raise RuntimeError(f"Lean runner failed: {proc.stderr.strip()}")
+        raise RuntimeError(f"Lean runner failed: {proc.stderr.strip() or proc.stdout.strip()}")
     parts = proc.stdout.split()
-    if len(parts) != 4:
+    if len(parts) != 8:
         raise RuntimeError(f"unexpected runner output: {proc.stdout!r}")
-    return Settlement(int(parts[0]), int(parts[1]), int(parts[2]), parts[3])
+    return Settlement(
+        ceded100=int(parts[0]),
+        retained_by_cedent=int(parts[1]),
+        premium100=int(parts[2]),
+        total_ceded_paid=int(parts[3]),
+        remaining_aggregate=int(parts[4]),
+        reinsurer_ceded=int(parts[5]),
+        reinsurer_premium=int(parts[6]),
+        invariant=parts[7],
+    )
 
 
-def adjudicate(claim: dict, terms: dict, runner: str | None = None) -> Adjudication:
+def adjudicate(
+    claim: dict,
+    terms: dict,
+    prior: dict | None = None,
+    runner: str | None = None,
+    flags: list[str] | None = None,
+) -> Adjudication:
+    """Screen, then settle only if Covered. `flags` come from the ACORD adapter."""
+    if flags:
+        return Adjudication(
+            claim_id=claim["claimId"],
+            verdict="Incomplete",
+            cited_clauses=[],
+            pending=list(flags),
+        )
     result = screen(claim, terms)
     if result.verdict == "Covered":
-        result.settlement = settle(claim, terms, runner)
+        result.settlement = settle(claim, terms, prior, runner)
     return result
 
 
-if __name__ == "__main__":
-    terms = json.loads((ROOT / "contracts" / "terms.json").read_text())
-    claims = json.loads((ROOT / "contracts" / "claims.json").read_text())
+def adjudicate_bordereau(
+    claims: list[dict],
+    terms: dict,
+    prior: dict | None = None,
+    runner: str | None = None,
+) -> list[Adjudication]:
+    """Sequential bordereau: each claim starts where the previous one ended."""
+    state = dict(prior or {})
+    cap = terms["limit"] * (1 + terms["reinstatements"])
+    state.setdefault("remainingAggregate", cap)
+    state.setdefault("totalCededPaid", 0)
+    results = []
     for claim in claims:
-        print(json.dumps(adjudicate(claim, terms).to_dict()))
+        result = adjudicate(claim, terms, state, runner)
+        results.append(result)
+        if result.settlement is not None:
+            state["remainingAggregate"] = result.settlement.remaining_aggregate
+            state["totalCededPaid"] = result.settlement.total_ceded_paid
+    return results
