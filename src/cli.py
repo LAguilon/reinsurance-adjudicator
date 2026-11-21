@@ -22,6 +22,13 @@ def human(results) -> str:
         lines.append(head)
         if r.pending:
             lines.append(f"    pending: {', '.join(r.pending)}")
+        if r.reserve:
+            v = r.reserve
+            lines.append(
+                f"    reserve proposed {v.cedent_proposed_ground_up}"
+                f"  100% {v.layer_100pct_reserve}"
+                f"  signed line {v.reinsurer_reserve_share}  {v.invariant_status}"
+            )
         if r.settlement:
             s = r.settlement
             lines.append(
@@ -64,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
             canonical.as_internal_terms(),
             prior,
             flags=canonical.flags or None,
+            proposed_reserve=canonical.proposed_reserve_minor,
         )
         response = acord_adapter.canonical_to_acord(result.to_dict(), canonical)
         if args.output_acord:
@@ -82,7 +90,8 @@ def main(argv: list[str] | None = None) -> int:
         if not isinstance(single, dict):
             print("--claim expects a single claim object, not a list", file=sys.stderr)
             return 2
-        results = [adjudicate(single, terms, prior)]
+        results = [adjudicate(single, terms, prior,
+                              proposed_reserve=single.get("proposedReserve"))]
     elif args.bordereau:
         results = adjudicate_bordereau(load(args.bordereau), terms, prior)
     else:
@@ -92,7 +101,8 @@ def main(argv: list[str] | None = None) -> int:
             if not claims:
                 print(f"no claim with id {args.claim_id}", file=sys.stderr)
                 return 2
-        results = [adjudicate(c, terms, prior) for c in claims]
+        results = [adjudicate(c, terms, prior,
+                              proposed_reserve=c.get("proposedReserve")) for c in claims]
 
     if args.json:
         print(json.dumps([r.to_dict() for r in results], indent=2))

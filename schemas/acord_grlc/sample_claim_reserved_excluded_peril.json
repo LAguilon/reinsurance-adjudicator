@@ -1,0 +1,19 @@
+{
+  "MessageHeader": { "MessageType": "ClaimMovement", "StandardVersion": "ACORD-GRLC-Gen2" },
+  "ClaimMovement": {
+    "ContractReference": "CERT-PROP-XOL-2024-001",
+    "ClaimReference": "CLM-2024-0007",
+    "DateOfLoss": "2024-09-20",
+    "CauseOfLossCode": "CYB",
+    "DocumentIndicators": {
+      "LossAdjusterReportStatus": "Completed",
+      "LitigationStatus": "PENDING",
+      "ClaimsCooperationStatus": "Complete"
+    },
+    "FinancialAmounts": {
+      "TotalIncurred": "120000.00",
+      "OutstandingLossReserve": "120000.00",
+      "CurrencyCode": "USD"
+    }
+  }
+}

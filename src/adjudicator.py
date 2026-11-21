@@ -54,12 +54,48 @@ class Settlement:
 
 
 @dataclass
+class Reserve:
+    """A booked reserve on an unresolved court ruling: no cash, no premium."""
+
+    cedent_proposed_ground_up: int
+    layer_100pct_reserve: int
+    reinsurer_reserve_share: int
+    invariant_status: str
+
+    def to_dict(self) -> dict:
+        return {
+            "cedent_proposed_ground_up": self.cedent_proposed_ground_up,
+            "layer_100pct_reserve": self.layer_100pct_reserve,
+            "reinsurer_reserve_share": self.reinsurer_reserve_share,
+            "invariant_status": self.invariant_status,
+        }
+
+
+@dataclass
+class StateAfter:
+    total_ceded_paid: int
+    remaining_aggregate: int
+    ceded_reserved_100pct: int
+    reinsurer_ceded_reserved: int
+
+    def to_dict(self) -> dict:
+        return {
+            "total_ceded_paid": self.total_ceded_paid,
+            "remaining_aggregate": self.remaining_aggregate,
+            "ceded_reserved_100pct": self.ceded_reserved_100pct,
+            "reinsurer_ceded_reserved": self.reinsurer_ceded_reserved,
+        }
+
+
+@dataclass
 class Adjudication:
     claim_id: str
     verdict: str
     cited_clauses: list[str] = field(default_factory=list)
     pending: list[str] = field(default_factory=list)
     settlement: Settlement | None = None
+    reserve: Reserve | None = None
+    state_after: StateAfter | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -68,6 +104,8 @@ class Adjudication:
             "citedClauses": self.cited_clauses,
             "pending": self.pending,
             "settlement": None if self.settlement is None else self.settlement.to_dict(),
+            "reserve": None if self.reserve is None else self.reserve.to_dict(),
+            "state_after": None if self.state_after is None else self.state_after.to_dict(),
         }
 
 
@@ -82,6 +120,7 @@ def screen(claim: dict, terms: dict) -> Adjudication:
         peril=catala.Peril(catala.Peril.Code[claim["peril"]]),
         incidentDay=claim["incidentDay"],
         isCertified=catala.true if claim["isCertified"] else catala.false,
+        litigationFinal=catala.true if claim.get("litigationFinal", True) else catala.false,
     )
     t = catala.TreatyTerms(
         retention=terms["retention"],
@@ -141,24 +180,61 @@ def settle(
     )
 
 
+def _prior_state(terms: dict, prior: dict | None) -> tuple[int, int]:
+    cap = terms["limit"] * (1 + terms["reinstatements"])
+    prior = prior or {}
+    return prior.get("remainingAggregate", cap), prior.get("totalCededPaid", 0)
+
+
 def adjudicate(
     claim: dict,
     terms: dict,
     prior: dict | None = None,
     runner: str | None = None,
     flags: list[str] | None = None,
+    proposed_reserve: int | None = None,
 ) -> Adjudication:
-    """Screen, then settle only if Covered. `flags` come from the ACORD adapter."""
+    """Screen, then settle (Covered) or book a reserve (Reserved).
+
+    `flags` come from the ACORD adapter; `proposed_reserve` is the cedent's
+    outstanding loss reserve in minor units, used only when the verdict is
+    Reserved.
+    """
+    remaining, paid = _prior_state(terms, prior)
+
     if flags:
         return Adjudication(
             claim_id=claim["claimId"],
             verdict="Incomplete",
             cited_clauses=[],
             pending=list(flags),
+            state_after=StateAfter(paid, remaining, 0, 0),
         )
+
     result = screen(claim, terms)
+
     if result.verdict == "Covered":
         result.settlement = settle(claim, terms, prior, runner)
+        result.state_after = StateAfter(
+            result.settlement.total_ceded_paid,
+            result.settlement.remaining_aggregate,
+            0,
+            0,
+        )
+    elif result.verdict == "Reserved":
+        amount = claim["lossAmount"] if proposed_reserve is None else proposed_reserve
+        # The layer arithmetic is the same function; only the reporting differs.
+        booked = settle(dict(claim, lossAmount=amount), terms, prior, runner)
+        result.reserve = Reserve(
+            cedent_proposed_ground_up=amount,
+            layer_100pct_reserve=booked.ceded100,
+            reinsurer_reserve_share=booked.reinsurer_ceded,
+            invariant_status=booked.invariant,
+        )
+        # Cash pool untouched: no cession paid, no capacity consumed.
+        result.state_after = StateAfter(paid, remaining, booked.ceded100, booked.reinsurer_ceded)
+    else:
+        result.state_after = StateAfter(paid, remaining, 0, 0)
     return result
 
 

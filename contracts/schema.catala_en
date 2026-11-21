@@ -12,6 +12,7 @@ a typed clause, so a citation cannot drift into prose and cannot be misspelled.
 ```catala
 declaration enumeration VerdictKind:
   -- Covered
+  -- Reserved
   -- Excluded
   -- Incomplete
 
@@ -30,6 +31,7 @@ declaration enumeration Clause:
   -- Cl_5_2_WarExclusion
   -- Cl_6_1_TreatyPeriod
   -- Cl_7_3_Certification
+  -- Cl_7_4_UnresolvedCourtRulingReserve
   -- Cl_8_1_LimitAndRetention
 
 declaration enumeration PendingKind:
@@ -44,6 +46,7 @@ declaration structure Claim:
   data peril content Peril
   data incidentDay content integer
   data isCertified content boolean
+  data litigationFinal content boolean
 
 declaration structure TreatyTerms:
   data retention content integer

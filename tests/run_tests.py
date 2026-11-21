@@ -96,7 +96,46 @@ def main() -> int:
     resp = acord_adapter.canonical_to_acord(res.to_dict(), canon)
     check("JPY response has no decimals", resp["FinancialSummary"]["Layer100PctCeded"] == "7000000")
 
-    # 16: floats are rejected at the boundary
+    # 16: unresolved court ruling with a proposed reserve -> Reserved
+    claim = json.loads((ACORD / "sample_claim_reserved.json").read_text())
+    canon = acord_adapter.acord_to_canonical(placing, claim)
+    res = adjudicate(canon.as_internal_claim(), canon.as_internal_terms(),
+                     flags=canon.flags or None,
+                     proposed_reserve=canon.proposed_reserve_minor)
+    resp = acord_adapter.canonical_to_acord(res.to_dict(), canon)
+    check("reserved -> ReserveAdvised", resp["AdjudicationStatus"] == "ReserveAdvised")
+    check("reserved has no settlement", res.settlement is None)
+    check("reserved 100% reserve 70,000.00", resp["ReserveSummary"]["Layer100PctCededReserve"] == "70000.00")
+    check("reserved signed line 17,500.00", resp["ReserveSummary"]["ReinsurerNetCededReserve"] == "17500.00")
+    check("reserved cash paid zero", resp["ReserveSummary"]["CashPaid"] == "0.00")
+    check("reserved premium due zero", resp["ReserveSummary"]["ReinstatementPremiumDue"] == "0.00")
+    check("reserved invariant ok", resp["ReserveSummary"]["ProofVerification"] == "INVARIANT_OK")
+    check("reserved leaves capacity unspent", res.state_after.remaining_aggregate == 30_000_000,
+          f"got {res.state_after.remaining_aggregate}")
+    check("reserved records ceded reserve", res.state_after.ceded_reserved_100pct == 7_000_000)
+    check("reserved cites Cl_7_4", "Cl_7_4_UnresolvedCourtRulingReserve" in res.cited_clauses)
+
+    # 17: unresolved ruling but the proposed reserve is below the retention
+    claim = json.loads((ACORD / "sample_claim_reserved_below_retention.json").read_text())
+    canon = acord_adapter.acord_to_canonical(placing, claim)
+    res = adjudicate(canon.as_internal_claim(), canon.as_internal_terms(),
+                     flags=canon.flags or None,
+                     proposed_reserve=canon.proposed_reserve_minor)
+    resp = acord_adapter.canonical_to_acord(res.to_dict(), canon)
+    check("below-retention reserve -> Reserved", resp["AdjudicationStatus"] == "ReserveAdvised")
+    check("below-retention reserve is zero", resp["ReserveSummary"]["Layer100PctCededReserve"] == "0.00")
+
+    # 18: exclusions override an unresolved ruling
+    claim = json.loads((ACORD / "sample_claim_reserved_excluded_peril.json").read_text())
+    canon = acord_adapter.acord_to_canonical(placing, claim)
+    res = adjudicate(canon.as_internal_claim(), canon.as_internal_terms(),
+                     flags=canon.flags or None,
+                     proposed_reserve=canon.proposed_reserve_minor)
+    resp = acord_adapter.canonical_to_acord(res.to_dict(), canon)
+    check("excluded peril beats Reserved", resp["AdjudicationStatus"] == "Rejected")
+    check("excluded peril has no ReserveSummary", "ReserveSummary" not in resp)
+
+    # 19: floats are rejected at the boundary
     try:
         acord_adapter.money_to_minor(120000.0, "USD", "test")
         check("float rejected", False, "no error raised")

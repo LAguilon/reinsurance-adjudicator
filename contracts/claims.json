@@ -1,10 +1,66 @@
 [
-  {"claimId": 1, "lossAmount": 12000000, "peril": "Windstorm", "incidentDay": 100, "isCertified": true},
-  {"claimId": 2, "lossAmount": 60000000, "peril": "Windstorm", "incidentDay": 120, "isCertified": true},
-  {"claimId": 3, "lossAmount": 3000000,  "peril": "Windstorm", "incidentDay": 150, "isCertified": true},
-  {"claimId": 4, "lossAmount": 20000000, "peril": "Cyber",     "incidentDay": 160, "isCertified": true},
-  {"claimId": 5, "lossAmount": 20000000, "peril": "War",       "incidentDay": 170, "isCertified": true},
-  {"claimId": 6, "lossAmount": 20000000, "peril": "Flood",     "incidentDay": 180, "isCertified": true},
-  {"claimId": 7, "lossAmount": 20000000, "peril": "Windstorm", "incidentDay": 400, "isCertified": true},
-  {"claimId": 8, "lossAmount": 20000000, "peril": "Windstorm", "incidentDay": 200, "isCertified": false}
+  {
+    "claimId": 1,
+    "lossAmount": 12000000,
+    "peril": "Windstorm",
+    "incidentDay": 100,
+    "isCertified": true,
+    "litigationFinal": true
+  },
+  {
+    "claimId": 2,
+    "lossAmount": 60000000,
+    "peril": "Windstorm",
+    "incidentDay": 120,
+    "isCertified": true,
+    "litigationFinal": true
+  },
+  {
+    "claimId": 3,
+    "lossAmount": 3000000,
+    "peril": "Windstorm",
+    "incidentDay": 150,
+    "isCertified": true,
+    "litigationFinal": true
+  },
+  {
+    "claimId": 4,
+    "lossAmount": 20000000,
+    "peril": "Cyber",
+    "incidentDay": 160,
+    "isCertified": true,
+    "litigationFinal": true
+  },
+  {
+    "claimId": 5,
+    "lossAmount": 20000000,
+    "peril": "War",
+    "incidentDay": 170,
+    "isCertified": true,
+    "litigationFinal": true
+  },
+  {
+    "claimId": 6,
+    "lossAmount": 20000000,
+    "peril": "Flood",
+    "incidentDay": 180,
+    "isCertified": true,
+    "litigationFinal": true
+  },
+  {
+    "claimId": 7,
+    "lossAmount": 20000000,
+    "peril": "Windstorm",
+    "incidentDay": 400,
+    "isCertified": true,
+    "litigationFinal": true
+  },
+  {
+    "claimId": 8,
+    "lossAmount": 20000000,
+    "peril": "Windstorm",
+    "incidentDay": 200,
+    "isCertified": false,
+    "litigationFinal": true
+  }
 ]

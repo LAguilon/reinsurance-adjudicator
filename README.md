@@ -13,7 +13,11 @@ The screen never computes money. The settlement never decides coverage.
 ## Verdicts
 
 * **`Covered`** — the peril is insured, the loss is inside the treaty period and
-  certified. The claim proceeds to settlement.
+  certified, and no court ruling is outstanding. The claim proceeds to cash
+  settlement.
+* **`Reserved`** — covered and certified, but the court ruling is unresolved. The
+  layer cession of the cedent's proposed reserve is booked; cash and
+  reinstatement premium are zero and capacity is not consumed.
 * **`Excluded`** — with the exact clause: `Cl_6_1_TreatyPeriod`,
   `Cl_5_1_CyberExclusion`, `Cl_5_2_WarExclusion`, `Cl_4_2_PerilExclusion`.
 * **`Incomplete`** — cannot be decided yet: `Cl_7_3_Certification` with pending
@@ -56,7 +60,7 @@ contracts/property_xol_v1.catala_en   the Screen scope
 contracts/terms.json          treaty under test
 contracts/claims.json         eight sample claims
 tests/test_property_xol.catala_en     fixture specification (8 edge cases)
-tests/run_tests.py            executes the fixtures (26 assertions)
+tests/run_tests.py            executes the fixtures (40 assertions)
 src/acord_adapter.py          ACORD GRLC ↔ canonical integers
 schemas/acord_grlc/           Placing and ClaimMovement samples
 docs/FACULTATIVE_GUIDE.md     operations and engineering guide

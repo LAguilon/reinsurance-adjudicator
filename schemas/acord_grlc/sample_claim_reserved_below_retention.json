@@ -1,0 +1,19 @@
+{
+  "MessageHeader": { "MessageType": "ClaimMovement", "StandardVersion": "ACORD-GRLC-Gen2" },
+  "ClaimMovement": {
+    "ContractReference": "CERT-PROP-XOL-2024-001",
+    "ClaimReference": "CLM-2024-0006",
+    "DateOfLoss": "2024-09-01",
+    "CauseOfLossCode": "WND",
+    "DocumentIndicators": {
+      "LossAdjusterReportStatus": "Completed",
+      "LitigationStatus": "OPEN",
+      "ClaimsCooperationStatus": "Complete"
+    },
+    "FinancialAmounts": {
+      "TotalIncurred": "30000.00",
+      "OutstandingLossReserve": "30000.00",
+      "CurrencyCode": "USD"
+    }
+  }
+}

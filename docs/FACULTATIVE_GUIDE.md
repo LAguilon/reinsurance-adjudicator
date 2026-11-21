@@ -38,10 +38,20 @@ minor units. Omitting it starts from full capacity.
 
 ## 3. The verdicts
 
-* `Covered` → settles. `AgreedForSettlement` in ACORD.
-* `Excluded` → no settlement. Cites `Cl_6_1_TreatyPeriod`, `Cl_5_1_CyberExclusion`,
-  `Cl_5_2_WarExclusion` or `Cl_4_2_PerilExclusion`. `Rejected` in ACORD.
-* `Incomplete` → no settlement, a query is raised. `PendedQuery` in ACORD.
+| Verdict | Trigger | Cash | Premium | Reserve booked | Capacity |
+|---|---|---|---|---|---|
+| `Excluded` (`Rejected`) | outside period, or excluded peril | 0 | 0 | 0 | unchanged |
+| `Incomplete` (`PendedQuery`) | unmapped peril, missing adjuster report, unrecognised indicator | 0 | 0 | 0 | unchanged |
+| `Reserved` (`ReserveAdvised`) | covered, certified, **court ruling unresolved** | 0 | 0 | layer cession of the cedent's proposed reserve | unspent |
+| `Covered` (`AgreedForSettlement`) | covered, certified, ruling final (or none) | layer cession | pro rata | 0 | reduced |
+
+Precedence is fixed by the wording: exclusions first, then certification, then
+litigation, then cover. A cyber loss under an unresolved ruling is **Excluded**,
+not Reserved — the exclusion is not suspended by the litigation.
+
+`Reserved` is not a query. The cedent has told us the number; we book our share
+of it and wait. Cash and reinstatement premium are zero, and the aggregate
+capacity is **not** consumed: a reserve is an encumbrance, not a payment.
 
 Below-attachment losses are **Covered with a zero cession**, not excluded. That
 distinction matters for bordereau totals.
@@ -79,16 +89,30 @@ Catala side needs a matching `Peril` constructor.
 
 ### Document indicators
 
-`LossAdjusterReportStatus`, `LitigationStatus`, `ClaimsCooperationStatus` map to
-`True` / `False` / `None`:
+`LossAdjusterReportStatus` → certification:
 
 * `COMPLETED`, `FINAL`, `RECEIVED`, `AGREED`, `COMPLETE` → `True`
 * `PENDING`, `NOTRECEIVED`, `OUTSTANDING`, `REQUESTED`, `OPEN` → `False`
 * `NONE`, `NA`, `N/A`, `NOTAPPLICABLE` → `False` (no adverse indicator)
 * anything else → `None`, which pends the claim with `UnmappedCertificationStatus`
 
-Only the adjuster status drives certification. Litigation and cooperation are
-carried in the audit trail but do not block settlement today.
+`LitigationStatus` → whether cash may move:
+
+| Value | Meaning | Verdict |
+|---|---|---|
+| `FINAL`, `SETTLED`, `NONE`, `NA`, `N/A`, `NOTAPPLICABLE` | no unresolved ruling | `Covered` |
+| `PENDING`, `OPEN`, `ACTIVE`, `ONGOING`, `UNRESOLVED` | ruling unresolved | `Reserved` |
+| anything else | unknown | `Incomplete` (`UnmappedLitigationStatus`) |
+| absent | nothing known | treated as final |
+
+`ClaimsCooperationStatus` is carried in the audit trail but does not block
+settlement today.
+
+### Reserve amounts
+
+`FinancialAmounts.OutstandingLossReserve` is the cedent's proposed reserve. When
+present it drives the reserve; otherwise `TotalIncurred` is used. Both are
+`Decimal` strings scaled by the ISO 4217 exponent like every other amount.
 
 ## 5. Failure modes
 
@@ -98,6 +122,7 @@ carried in the audit trail but do not block settlement today.
 | `AcordError: sub-minor-unit precision` | e.g. `"10.001"` USD | round at source, never here |
 | `AcordError: unsupported ISO 4217` | currency not in the table | add the exponent deliberately |
 | `PendedQuery` with `UnmappedAcordPerilCode` | unknown cause-of-loss | extend the codelist |
+| `ReserveAdvised` with zero reserve | proposed reserve below the retention | correct: nothing attaches yet |
 | `VIOLATION` from the runner | bridge called the wrong function | stop; the kernel proves it cannot happen |
 
 ## 6. Engineering rules

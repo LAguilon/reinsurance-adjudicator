@@ -42,6 +42,10 @@ ACORD_PERIL_TO_INTERNAL = {
 }
 
 CERTIFIED_STATUSES = {"COMPLETED", "FINAL", "RECEIVED", "AGREED", "COMPLETE"}
+
+# LitigationStatus: does an unresolved court ruling block cash settlement?
+LITIGATION_FINAL = {"FINAL", "SETTLED", "NONE", "NA", "N/A", "NOTAPPLICABLE"}
+LITIGATION_OPEN = {"PENDING", "OPEN", "ACTIVE", "ONGOING", "UNRESOLVED"}
 PENDING_STATUSES = {"PENDING", "NOTRECEIVED", "OUTSTANDING", "REQUESTED", "OPEN"}
 NEUTRAL_STATUSES = {"NONE", "NA", "N/A", "NOTAPPLICABLE", "NOTAPPLICABLE", "NO"}
 
@@ -106,6 +110,18 @@ def map_peril(code: str | None) -> str | None:
     return None if code is None else ACORD_PERIL_TO_INTERNAL.get(str(code).strip().upper())
 
 
+def map_litigation(value: str | None) -> bool | None:
+    """LitigationStatus → True (no unresolved ruling) / False / None (unknown)."""
+    if value is None:
+        return None
+    s = str(value).strip().upper()
+    if s in LITIGATION_FINAL:
+        return True
+    if s in LITIGATION_OPEN:
+        return False
+    return None
+
+
 def map_indicator(value: str | None) -> bool | None:
     """Document indicator → True / False / None (unknown)."""
     if value is None:
@@ -138,6 +154,8 @@ class CanonicalClaim:
     date_of_loss: int
     peril: str | None
     certified: bool | None
+    litigation_final: bool | None = True
+    proposed_reserve_minor: int | None = None
     excludes_flood: bool = True
     excludes_earthquake: bool = True
     document_indicators: dict = field(default_factory=dict)
@@ -154,6 +172,7 @@ class CanonicalClaim:
             "peril": self.peril or "Windstorm",
             "incidentDay": self.date_of_loss,
             "isCertified": bool(self.certified),
+            "litigationFinal": bool(self.litigation_final),
         }
 
     def as_internal_terms(self) -> dict:
@@ -193,6 +212,12 @@ def acord_to_canonical(placing: dict, claim: dict) -> CanonicalClaim:
         if key in movement and key not in indicators:
             indicators[key] = movement[key]
     certified = map_indicator(indicators.get("LossAdjusterReportStatus"))
+    litigation = (
+        map_litigation(indicators["LitigationStatus"])
+        if "LitigationStatus" in indicators
+        else True  # no litigation indicator means no known ruling
+    )
+    proposed = amounts.get("OutstandingLossReserve")
 
     flags: list[str] = []
     peril = map_peril(movement.get("CauseOfLossCode") or movement.get("PerilCode"))
@@ -200,12 +225,10 @@ def acord_to_canonical(placing: dict, claim: dict) -> CanonicalClaim:
         flags.append("UnmappedAcordPerilCode")
     if certified is None:
         flags.append("UnmappedCertificationStatus")
-    for key, code in (
-        ("LitigationStatus", "UnmappedLitigationStatus"),
-        ("ClaimsCooperationStatus", "UnmappedCooperationStatus"),
-    ):
-        if key in indicators and map_indicator(indicators[key]) is None:
-            flags.append(code)
+    if "LitigationStatus" in indicators and litigation is None:
+        flags.append("UnmappedLitigationStatus")
+    if "ClaimsCooperationStatus" in indicators and map_indicator(indicators["ClaimsCooperationStatus"]) is None:
+        flags.append("UnmappedCooperationStatus")
 
     return CanonicalClaim(
         certificate_id=contract.get("ContractReference", ""),
@@ -229,6 +252,10 @@ def acord_to_canonical(placing: dict, claim: dict) -> CanonicalClaim:
         date_of_loss=iso_date_to_day(movement["DateOfLoss"], "ClaimMovement.DateOfLoss"),
         peril=peril,
         certified=certified,
+        litigation_final=litigation,
+        proposed_reserve_minor=None
+        if proposed is None
+        else money_to_minor(proposed, currency, "FinancialAmounts.OutstandingLossReserve"),
         excludes_flood=bool(contract.get("Exclusions", {}).get("Flood", True)),
         excludes_earthquake=bool(contract.get("Exclusions", {}).get("Earthquake", True)),
         document_indicators=dict(indicators),
@@ -238,6 +265,7 @@ def acord_to_canonical(placing: dict, claim: dict) -> CanonicalClaim:
 
 ADJUDICATION_STATUS = {
     "Covered": "AgreedForSettlement",
+    "Reserved": "ReserveAdvised",
     "Excluded": "Rejected",
     "Incomplete": "PendedQuery",
 }
@@ -268,6 +296,17 @@ def canonical_to_acord(result: dict, canonical: CanonicalClaim, commit: str = "1
             for q in (result.get("pending") or [])
         ],
     }
+    if result["verdict"] == "Reserved":
+        r = result["reserve"]
+        body["ReserveSummary"] = {
+            "CurrencyCode": canonical.currency,
+            "CedentProposedReserve": minor_to_money(r["cedent_proposed_ground_up"], canonical.currency),
+            "Layer100PctCededReserve": minor_to_money(r["layer_100pct_reserve"], canonical.currency),
+            "ReinsurerNetCededReserve": minor_to_money(r["reinsurer_reserve_share"], canonical.currency),
+            "CashPaid": minor_to_money(0, canonical.currency),
+            "ReinstatementPremiumDue": minor_to_money(0, canonical.currency),
+            "ProofVerification": r["invariant_status"],
+        }
     if result["verdict"] == "Covered":
         s = result["settlement"]
         body["FinancialSummary"] = {

@@ -1,0 +1,23 @@
+{
+  "MessageHeader": {
+    "MessageType": "ClaimMovementResponse",
+    "StandardVersion": "ACORD-GRLC-Gen2",
+    "ContractReference": "CERT-PROP-XOL-2024-001",
+    "ClaimReference": "CLM-2024-0001",
+    "ReinsuranceLeanCommit": "1cad8b6"
+  },
+  "AdjudicationStatus": "AgreedForSettlement",
+  "ClauseCitations": [
+    "Cl_4_1_PerilsInsured",
+    "Cl_8_1_LimitAndRetention"
+  ],
+  "PendedQueries": [],
+  "FinancialSummary": {
+    "CurrencyCode": "USD",
+    "Layer100PctCeded": "70000.00",
+    "ReinsurerNetCededShare": "17500.00",
+    "ReinsurerReinstatementPremium": "17500.00",
+    "RemainingAggregateLimit": "230000.00",
+    "ProofVerification": "INVARIANT_OK"
+  }
+}

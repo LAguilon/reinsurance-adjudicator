@@ -94,6 +94,13 @@ scope Screen:
         -- citedClauses : [Cl_7_3_Certification]
         -- pending : [AdjusterCertification]
       }
+    # Cl. 7.4 — an unresolved court ruling does not pay cash; it books a reserve.
+    else if not claim.litigationFinal then
+      Verdict {
+        -- kind : Reserved
+        -- citedClauses : [Cl_4_1_PerilsInsured; Cl_8_1_LimitAndRetention; Cl_7_4_UnresolvedCourtRulingReserve]
+        -- pending : []
+      }
     else
       Verdict {
         -- kind : Covered
