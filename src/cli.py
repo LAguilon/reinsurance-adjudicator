@@ -10,7 +10,41 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import acord_adapter  # noqa: E402
+import report  # noqa: E402
 from adjudicator import adjudicate, adjudicate_bordereau  # noqa: E402
+from datetime import date, timedelta  # noqa: E402
+
+EPOCH = date(1970, 1, 1)
+
+
+def day_to_iso(day: int) -> str:
+    return (EPOCH + timedelta(days=day)).isoformat()
+
+
+def meta_from_canonical(canon) -> dict:
+    return {
+        "certificate_id": canon.certificate_id,
+        "claim_id": canon.claim_id,
+        "currency": canon.currency,
+        "participation_bps": canon.participation_bps,
+        "retention_minor": canon.retention_minor,
+        "limit_minor": canon.limit_minor,
+        "peril": canon.peril or "—",
+        "date_of_loss": day_to_iso(canon.date_of_loss),
+    }
+
+
+def meta_from_internal(claim: dict, terms: dict) -> dict:
+    return {
+        "certificate_id": terms.get("certificateId", "—"),
+        "claim_id": str(claim.get("claimId", "—")),
+        "currency": terms.get("currency", "USD"),
+        "participation_bps": terms.get("participationBps", 10000),
+        "retention_minor": terms["retention"],
+        "limit_minor": terms["limit"],
+        "peril": claim.get("peril", "—"),
+        "date_of_loss": day_to_iso(claim["incidentDay"]),
+    }
 
 
 def human(results) -> str:
@@ -58,6 +92,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--output-acord", help="write the ACORD response to this file")
     ap.add_argument("--claim-id", help="adjudicate one claim id from --claims")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--report-html", help="write a one-page HTML advice to this path")
     args = ap.parse_args(argv)
 
     prior = load(args.prior_audit) if args.prior_audit else None
@@ -76,6 +111,11 @@ def main(argv: list[str] | None = None) -> int:
         response = acord_adapter.canonical_to_acord(result.to_dict(), canonical)
         if args.output_acord:
             Path(args.output_acord).write_text(json.dumps(response, indent=2) + "\n")
+        if args.report_html:
+            page = report.render(result.to_dict(), meta_from_canonical(canonical))
+            Path(args.report_html).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.report_html).write_text(page)
+            print(f"advice written to {args.report_html}", file=sys.stderr)
         print(json.dumps(response, indent=2) if args.json else human([result]))
         return 0
 
@@ -103,6 +143,19 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
         results = [adjudicate(c, terms, prior,
                               proposed_reserve=c.get("proposedReserve")) for c in claims]
+
+    if args.report_html:
+        if len(results) != 1:
+            print("--report-html needs exactly one claim; use --claim or --claim-id",
+                  file=sys.stderr)
+            return 2
+        meta = meta_from_internal(
+            load(args.claim) if args.claim else claims[0], terms
+        )
+        page = report.render(results[0].to_dict(), meta)
+        Path(args.report_html).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.report_html).write_text(page)
+        print(f"advice written to {args.report_html}", file=sys.stderr)
 
     if args.json:
         print(json.dumps([r.to_dict() for r in results], indent=2))

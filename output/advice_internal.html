@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Claim Adjudication Advice — 1</title>
+<style>
+:root { --ink:#1c1c1c; --muted:#5f6368; --rule:#d7d7d7; }
+* { box-sizing: border-box; }
+body { margin:0; padding:28px 32px 40px; font:14px/1.45 -apple-system, "Segoe UI",
+       Roboto, Helvetica, Arial, sans-serif; color:var(--ink); background:#fff; }
+.page { max-width: 860px; margin: 0 auto; }
+header { border-bottom:2px solid var(--ink); padding-bottom:10px; margin-bottom:18px; }
+h1 { font-size:19px; margin:0 0 4px; letter-spacing:.2px; }
+.sub { color:var(--muted); font-size:12px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 24px; margin:14px 0 6px; }
+.kv { display:flex; justify-content:space-between; border-bottom:1px dotted var(--rule);
+      padding:3px 0; font-size:13px; }
+.kv b { font-weight:600; }
+.badge { display:inline-block; padding:6px 14px; border-radius:4px; font-weight:700;
+         letter-spacing:.6px; font-size:13px; }
+h2 { font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted);
+     margin:22px 0 8px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th, td { text-align:right; padding:6px 8px; border-bottom:1px solid var(--rule); }
+th:first-child, td:first-child { text-align:left; }
+thead th { background:#f6f6f6; font-weight:600; font-size:12px; }
+.clause { margin:0 0 10px; padding:8px 12px; background:#fafafa; border-left:3px solid var(--ink); }
+.clause .id { font-weight:700; font-size:12px; letter-spacing:.3px; }
+.clause .txt { margin-top:3px; }
+.pending { padding:8px 12px; background:#fff4d6; border-left:3px solid #8a5a00; }
+.stamp { margin-top:26px; padding-top:12px; border-top:2px solid var(--ink);
+         font-size:12px; color:var(--muted); }
+.stamp b { color:var(--ink); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+@media print { body { padding:0; } .page { max-width:none; } }
+</style></head>
+<body><div class="page">
+<header>
+  <h1>Claim Adjudication Advice</h1>
+  <div class="sub">Facultative Excess of Loss Certificate — Property XoL v1</div>
+</header>
+<div class="grid"><div class="kv"><span>Certificate</span><b>—</b></div><div class="kv"><span>Claim</span><b>1</b></div><div class="kv"><span>Peril</span><b>Windstorm</b></div><div class="kv"><span>Date of loss</span><b>1970-04-11</b></div><div class="kv"><span>Signed line</span><b>100.00%</b></div><div class="kv"><span>Retention / limit</span><b>50000.00 USD / 100000.00 USD</b></div></div>
+<div style="margin:18px 0 4px">
+  <span class="badge" style="color:#0f7b3f;background:#e6f4ea">COVERED</span>
+</div>
+<h2>Verdict</h2>
+<p>Covered. Clauses applied are reproduced verbatim below.</p>
+<h2>Verbatim clauses applied</h2>
+<div class="clause"><div class="id">Cl_4_1_PerilsInsured</div><div class="txt">This Certificate insures loss or damage to the Insured Property caused by or resulting from the Perils Insured against, subject to the terms, conditions, limitations and exclusions of this Certificate.</div></div><div class="clause"><div class="id">Cl_8_1_LimitAndRetention</div><div class="txt">The Reinsurer&#x27;s liability shall not exceed the Limit of Liability shown in the Schedule, excess of the Retention, and shall be subject to the aggregate limit and the reinstatement provisions shown in the Schedule.</div></div>
+
+
+        <h2>Settlement</h2>
+        <table>
+          <thead><tr><th>Basis</th><th>Ceded</th><th>Retained by cedent</th>
+          <th>Reinstatement premium</th><th>Remaining aggregate</th></tr></thead>
+          <tbody>
+            <tr><td>100%</td><td>70000.00 USD</td>
+                <td>50000.00 USD</td>
+                <td>70000.00 USD</td>
+                <td>230000.00 USD</td></tr>
+            <tr><td>Signed line</td><td>70000.00 USD</td>
+                <td>—</td><td>70000.00 USD</td><td>—</td></tr>
+          </tbody>
+        </table>
+<div class="stamp">
+  <b>Verification:</b> <span class="mono">INVARIANT_OK</span> —
+  arithmetic computed by <b>ReinsuranceLean</b> (Lean 4 kernel, commit
+  <span class="mono">1cad8b6</span>); coverage determined by <b>Catala</b>
+  (typechecked specification). Money is exact integer minor units; no floating
+  point is used anywhere in the pipeline.
+</div>
+</div></body></html>

@@ -135,7 +135,31 @@ def main() -> int:
     check("excluded peril beats Reserved", resp["AdjudicationStatus"] == "Rejected")
     check("excluded peril has no ReserveSummary", "ReserveSummary" not in resp)
 
-    # 19: floats are rejected at the boundary
+    # 19: cyber write-back — a cyber loss that produced fire or explosion is covered
+    claim = json.loads((ACORD / "sample_claim_cyber_writeback.json").read_text())
+    canon = acord_adapter.acord_to_canonical(placing, claim)
+    check("write-back flag parsed", canon.resulting_fire_or_explosion is True)
+    res = adjudicate(canon.as_internal_claim(), canon.as_internal_terms(),
+                     flags=canon.flags or None,
+                     proposed_reserve=canon.proposed_reserve_minor)
+    resp = acord_adapter.canonical_to_acord(res.to_dict(), canon)
+    check("cyber + fire -> Covered", resp["AdjudicationStatus"] == "AgreedForSettlement")
+    check("write-back cites Cl_5_1a",
+          "Cl_5_1a_CyberResultingFireWriteBack" in res.cited_clauses)
+    check("write-back does not cite the exclusion",
+          "Cl_5_1_CyberExclusion" not in res.cited_clauses)
+    check("write-back settles 70,000.00", resp["FinancialSummary"]["Layer100PctCeded"] == "70000.00")
+
+    # 20: the same cyber loss without the write-back flag stays excluded
+    claim2 = json.loads((ACORD / "sample_claim_covered.json").read_text())
+    claim2["ClaimMovement"]["CauseOfLossCode"] = "CYB"
+    claim2["ClaimMovement"]["DocumentIndicators"].pop("ResultingFireOrExplosion", None)
+    canon2 = acord_adapter.acord_to_canonical(placing, claim2)
+    res2 = adjudicate(canon2.as_internal_claim(), canon2.as_internal_terms(),
+                      flags=canon2.flags or None)
+    check("cyber without fire -> Excluded", res2.verdict == "Excluded")
+
+    # 21: floats are rejected at the boundary
     try:
         acord_adapter.money_to_minor(120000.0, "USD", "test")
         check("float rejected", False, "no error raised")

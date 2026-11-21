@@ -40,7 +40,7 @@ minor units. Omitting it starts from full capacity.
 
 | Verdict | Trigger | Cash | Premium | Reserve booked | Capacity |
 |---|---|---|---|---|---|
-| `Excluded` (`Rejected`) | outside period, or excluded peril | 0 | 0 | 0 | unchanged |
+| `Excluded` (`Rejected`) | outside period, or excluded peril (cyber only without the fire write-back) | 0 | 0 | 0 | unchanged |
 | `Incomplete` (`PendedQuery`) | unmapped peril, missing adjuster report, unrecognised indicator | 0 | 0 | 0 | unchanged |
 | `Reserved` (`ReserveAdvised`) | covered, certified, **court ruling unresolved** | 0 | 0 | layer cession of the cedent's proposed reserve | unspent |
 | `Covered` (`AgreedForSettlement`) | covered, certified, ruling final (or none) | layer cession | pro rata | 0 | reduced |
@@ -71,6 +71,17 @@ Minor units come from the ISO 4217 exponent, not from a guess:
 An unlisted currency is a hard error. `Decimal("120000.00")` USD → `12000000`.
 A JSON float anywhere in a money field is a hard error: floats cannot represent
 cents and are rejected rather than coerced.
+
+### Cyber write-back (LMA5401-style)
+
+A cyber loss is excluded by `Cl_5_1_CyberExclusion` **unless** the cyber
+incident resulted in physical fire or explosion. In that case
+`Cl_5_1a_CyberResultingFireWriteBack` restores cover and the advice cites the
+write-back rather than the exclusion. The flag arrives as
+`DocumentIndicators.ResultingFireOrExplosion` (boolean or `"true"`/`"false"`);
+absent means false. The write-back sits after certification and litigation in
+the clause order, so an uncertified cyber claim is still `Incomplete`, not
+`Covered`.
 
 ### Perils
 
@@ -138,6 +149,14 @@ present it drives the reserve; otherwise `TotalIncurred` is used. Both are
    safe. This is why the contract is written with `match`.
 6. **Signed line is applied last**, to the 100% figures, with `applyBps`. Never
    scale the loss first: `applyBps` floors, and flooring early loses cents.
+
+## 6a. The HTML advice
+
+`python3 src/cli.py ... --report-html out.html` writes a self-contained page:
+certificate and claim header, colour-coded verdict badge, the verbatim text of
+every cited clause, pending queries, the 100% versus signed-line table (or the
+reserve table), and the `INVARIANT_OK` stamp naming the ReinsuranceLean commit.
+No external assets, no scripts; it prints on one page.
 
 ## 7. What is not modelled
 

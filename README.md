@@ -20,6 +20,9 @@ The screen never computes money. The settlement never decides coverage.
   reinstatement premium are zero and capacity is not consumed.
 * **`Excluded`** — with the exact clause: `Cl_6_1_TreatyPeriod`,
   `Cl_5_1_CyberExclusion`, `Cl_5_2_WarExclusion`, `Cl_4_2_PerilExclusion`.
+  Cyber is excluded **unless** the incident resulted in physical fire or
+  explosion, in which case the LMA5401-style write-back
+  `Cl_5_1a_CyberResultingFireWriteBack` restores cover.
 * **`Incomplete`** — cannot be decided yet: `Cl_7_3_Certification` with pending
   `AdjusterCertification`.
 
@@ -37,6 +40,9 @@ export CATALA_PY_RUNTIME=/path/to/runtime/python/src/catala
 ./scripts/build.sh          # Catala typecheck + Python backend + Lean bridge
 python3 src/cli.py          # human report
 python3 src/cli.py --json   # machine-readable audit trail
+python3 src/cli.py --acord-placing schemas/acord_grlc/sample_placing.json \
+    --acord-claim schemas/acord_grlc/sample_claim_cyber_writeback.json \
+    --report-html output/sample_advice.html   # one-page HTML advice
 python3 tests/run_tests.py  # 8 fixtures
 ```
 
@@ -60,13 +66,14 @@ contracts/property_xol_v1.catala_en   the Screen scope
 contracts/terms.json          treaty under test
 contracts/claims.json         eight sample claims
 tests/test_property_xol.catala_en     fixture specification (8 edge cases)
-tests/run_tests.py            executes the fixtures (40 assertions)
+tests/run_tests.py            executes the fixtures (46 assertions)
 src/acord_adapter.py          ACORD GRLC ↔ canonical integers
 schemas/acord_grlc/           Placing and ClaimMovement samples
 docs/FACULTATIVE_GUIDE.md     operations and engineering guide
 lean_bridge/Runner.lean       the settlement bridge
 src/adjudicator.py            Catala screen + Lean settle + report objects
 src/cli.py                    CLI
+src/report.py                 one-page HTML Claim Adjudication Advice
 scripts/build.sh              one-command build
 scripts/run_lean.sh           runner wrapper
 ```

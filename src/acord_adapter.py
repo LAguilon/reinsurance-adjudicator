@@ -110,6 +110,15 @@ def map_peril(code: str | None) -> str | None:
     return None if code is None else ACORD_PERIL_TO_INTERNAL.get(str(code).strip().upper())
 
 
+def map_flag(value) -> bool:
+    """Accept a JSON boolean or a boolean-ish string; default False."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().upper() in {"TRUE", "YES", "Y", "1"}
+
+
 def map_litigation(value: str | None) -> bool | None:
     """LitigationStatus → True (no unresolved ruling) / False / None (unknown)."""
     if value is None:
@@ -155,6 +164,7 @@ class CanonicalClaim:
     peril: str | None
     certified: bool | None
     litigation_final: bool | None = True
+    resulting_fire_or_explosion: bool = False
     proposed_reserve_minor: int | None = None
     excludes_flood: bool = True
     excludes_earthquake: bool = True
@@ -173,6 +183,7 @@ class CanonicalClaim:
             "incidentDay": self.date_of_loss,
             "isCertified": bool(self.certified),
             "litigationFinal": bool(self.litigation_final),
+            "resultingFireOrExplosion": self.resulting_fire_or_explosion,
         }
 
     def as_internal_terms(self) -> dict:
@@ -253,6 +264,9 @@ def acord_to_canonical(placing: dict, claim: dict) -> CanonicalClaim:
         peril=peril,
         certified=certified,
         litigation_final=litigation,
+        resulting_fire_or_explosion=map_flag(
+            indicators.get("ResultingFireOrExplosion", movement.get("ResultingFireOrExplosion"))
+        ),
         proposed_reserve_minor=None
         if proposed is None
         else money_to_minor(proposed, currency, "FinancialAmounts.OutstandingLossReserve"),

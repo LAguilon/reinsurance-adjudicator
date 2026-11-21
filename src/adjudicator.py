@@ -121,6 +121,9 @@ def screen(claim: dict, terms: dict) -> Adjudication:
         incidentDay=claim["incidentDay"],
         isCertified=catala.true if claim["isCertified"] else catala.false,
         litigationFinal=catala.true if claim.get("litigationFinal", True) else catala.false,
+        resultingFireOrExplosion=catala.true
+        if claim.get("resultingFireOrExplosion", False)
+        else catala.false,
     )
     t = catala.TreatyTerms(
         retention=terms["retention"],

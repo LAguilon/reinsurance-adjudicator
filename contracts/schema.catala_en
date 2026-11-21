@@ -28,6 +28,7 @@ declaration enumeration Clause:
   -- Cl_4_1_PerilsInsured
   -- Cl_4_2_PerilExclusion
   -- Cl_5_1_CyberExclusion
+  -- Cl_5_1a_CyberResultingFireWriteBack
   -- Cl_5_2_WarExclusion
   -- Cl_6_1_TreatyPeriod
   -- Cl_7_3_Certification
@@ -47,6 +48,7 @@ declaration structure Claim:
   data incidentDay content integer
   data isCertified content boolean
   data litigationFinal content boolean
+  data resultingFireOrExplosion content boolean
 
 declaration structure TreatyTerms:
   data retention content integer
