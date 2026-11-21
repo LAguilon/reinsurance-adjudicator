@@ -1,0 +1,16 @@
+{"version": "1.3.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"url": "https://github.com/LAguilon/ReinsuranceLean",
+   "type": "git",
+   "subDir": null,
+   "scope": "",
+   "rev": "f59598b303a78252dc312658fe5cfb4eaad7f5cb",
+   "name": "ReinsuranceLean",
+   "manifestFile": "lake-manifest.json",
+   "inputRev": "v0.1.0",
+   "inherited": false,
+   "configFile": "lakefile.toml"}],
+ "name": "«reinsurance-adjudicator»",
+ "lakeDir": ".lake",
+ "fixedToolchain": false}

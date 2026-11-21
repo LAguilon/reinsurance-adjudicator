@@ -1,0 +1,12 @@
+name = "reinsurance-adjudicator"
+version = "0.1.0"
+defaultTargets = ["Runner"]
+
+[[require]]
+name = "ReinsuranceLean"
+git = "https://github.com/LAguilon/ReinsuranceLean"
+rev = "v0.1.0"
+
+[[lean_lib]]
+name = "Runner"
+srcDir = "lean_bridge"

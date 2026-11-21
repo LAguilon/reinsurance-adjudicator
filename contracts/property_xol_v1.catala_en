@@ -1,0 +1,103 @@
+# Property XoL v1 — coverage screening
+
+A one-layer property excess-of-loss certificate. This file decides **coverage
+only**; it never computes a ceded amount. Settlement is delegated to
+`ReinsuranceLean`, whose `layerCeded` is the verified arithmetic.
+
+Perils are classified by an exhaustive `match`, so adding a peril to the
+enumeration is a compile error here until it has been classified. That is the
+point: the wording must say what happens to every peril it names.
+
+```catala
+declaration scope Screen:
+  input claim content Claim
+  input terms content TreatyTerms
+  output isCyber content boolean
+  output isWar content boolean
+  output isFlood content boolean
+  output isEarthquake content boolean
+  output verdict content Verdict
+
+scope Screen:
+  # Cl. 5.1 — cyber is excluded outright.
+  definition isCyber equals
+    match claim.peril with pattern
+    -- Cyber : true
+    -- Windstorm : false
+    -- Flood : false
+    -- Earthquake : false
+    -- Fire : false
+    -- War : false
+
+  # Cl. 5.2 — war is excluded outright.
+  definition isWar equals
+    match claim.peril with pattern
+    -- War : true
+    -- Windstorm : false
+    -- Flood : false
+    -- Earthquake : false
+    -- Fire : false
+    -- Cyber : false
+
+  # Cl. 4.2 — flood is excluded only when the schedule says so.
+  definition isFlood equals
+    match claim.peril with pattern
+    -- Flood : true
+    -- Windstorm : false
+    -- Earthquake : false
+    -- Fire : false
+    -- Cyber : false
+    -- War : false
+
+  # Cl. 4.2 — earthquake is excluded only when the schedule says so.
+  definition isEarthquake equals
+    match claim.peril with pattern
+    -- Earthquake : true
+    -- Windstorm : false
+    -- Flood : false
+    -- Fire : false
+    -- Cyber : false
+    -- War : false
+
+  # Clause order follows the wording: period, absolute exclusions, scheduled
+  # exclusions, certification, cover.
+  definition verdict equals
+    if claim.incidentDay < terms.inceptionDay
+       or claim.incidentDay > terms.expiryDay then
+      Verdict {
+        -- kind : Excluded
+        -- citedClauses : [Cl_6_1_TreatyPeriod]
+        -- pending : []
+      }
+    else if isCyber then
+      Verdict {
+        -- kind : Excluded
+        -- citedClauses : [Cl_5_1_CyberExclusion]
+        -- pending : []
+      }
+    else if isWar then
+      Verdict {
+        -- kind : Excluded
+        -- citedClauses : [Cl_5_2_WarExclusion]
+        -- pending : []
+      }
+    else if (isFlood and terms.excludesFlood)
+         or (isEarthquake and terms.excludesEarthquake) then
+      Verdict {
+        -- kind : Excluded
+        -- citedClauses : [Cl_4_2_PerilExclusion]
+        -- pending : []
+      }
+    else if not claim.isCertified then
+      Verdict {
+        -- kind : Incomplete
+        -- citedClauses : [Cl_7_3_Certification]
+        -- pending : [AdjusterCertification]
+      }
+    else
+      Verdict {
+        -- kind : Covered
+        -- citedClauses : [Cl_4_1_PerilsInsured; Cl_8_1_LimitAndRetention]
+        -- pending : []
+      }
+```

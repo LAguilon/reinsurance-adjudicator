@@ -1,0 +1,5 @@
+[project]
+build_dir = "_build"
+target_dir = "output"
+include_dirs = ["contracts"]
+default_targets = ["property_xol_v1"]

@@ -1,0 +1,60 @@
+# Property XoL v1 — test fixtures
+
+Eight edge cases for `Screen`. Each block states the input and the verdict the
+contract must produce, with its clause citations.
+
+This file is the **fixture specification**. In an environment with the OCaml
+runtime it is a clerk golden test; here it is executed by `tests/run_tests.py`
+against the compiled Python backend, which asserts exactly the verdicts below.
+The README says which is which.
+
+Treaty under test: retention 5,000,000; limit 10,000,000; 2 reinstatements at
+100%; period days 0–365; flood and earthquake excluded by schedule.
+
+```catala
+# Case 1 — windstorm inside the period, certified, above attachment.
+# claim  {1, 12,000,000, Windstorm, day 100, certified}
+# verdict Covered, clauses [Cl_4_1_PerilsInsured, Cl_8_1_LimitAndRetention]
+```
+
+```catala
+# Case 2 — windstorm, certified, loss above retention + limit (capped).
+# claim  {2, 60,000,000, Windstorm, day 120, certified}
+# verdict Covered, cession capped at the limit
+```
+
+```catala
+# Case 3 — windstorm, certified, loss below the retention.
+# claim  {3, 3,000,000, Windstorm, day 150, certified}
+# verdict Covered, cession zero (below attachment is not an exclusion)
+```
+
+```catala
+# Case 4 — cyber.
+# claim  {4, 20,000,000, Cyber, day 160, certified}
+# verdict Excluded, clauses [Cl_5_1_CyberExclusion]
+```
+
+```catala
+# Case 5 — war.
+# claim  {5, 20,000,000, War, day 170, certified}
+# verdict Excluded, clauses [Cl_5_2_WarExclusion]
+```
+
+```catala
+# Case 6 — flood, excluded by the schedule.
+# claim  {6, 20,000,000, Flood, day 180, certified}
+# verdict Excluded, clauses [Cl_4_2_PerilExclusion]
+```
+
+```catala
+# Case 7 — outside the treaty period.
+# claim  {7, 20,000,000, Windstorm, day 400, certified}
+# verdict Excluded, clauses [Cl_6_1_TreatyPeriod]
+```
+
+```catala
+# Case 8 — uncertified loss.
+# claim  {8, 20,000,000, Windstorm, day 200, uncertified}
+# verdict Incomplete, clauses [Cl_7_3_Certification], pending [AdjusterCertification]
+```

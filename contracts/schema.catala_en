@@ -1,0 +1,61 @@
+# Reinsurance adjudicator — canonical data types
+
+> Module Schema
+
+Amounts are integers in the contract's minor unit (cents), matching the `Nat`
+arithmetic of `ReinsuranceLean`. Dates are day numbers since 1970-01-01, so every
+comparison is an exact integer comparison and no calendar library is involved.
+
+Perils and clause identifiers are **enumerations**, not free text: a verdict cites
+a typed clause, so a citation cannot drift into prose and cannot be misspelled.
+
+```catala
+declaration enumeration VerdictKind:
+  -- Covered
+  -- Excluded
+  -- Incomplete
+
+declaration enumeration Peril:
+  -- Windstorm
+  -- Flood
+  -- Earthquake
+  -- Fire
+  -- Cyber
+  -- War
+
+declaration enumeration Clause:
+  -- Cl_4_1_PerilsInsured
+  -- Cl_4_2_PerilExclusion
+  -- Cl_5_1_CyberExclusion
+  -- Cl_5_2_WarExclusion
+  -- Cl_6_1_TreatyPeriod
+  -- Cl_7_3_Certification
+  -- Cl_8_1_LimitAndRetention
+
+declaration enumeration PendingKind:
+  -- OccurrenceAggregation
+  -- LegalInterpretation
+  -- AdjusterCertification
+
+declaration structure Claim:
+  data claimId content integer
+  data lossAmount content integer
+  data peril content Peril
+  data incidentDay content integer
+  data isCertified content boolean
+
+declaration structure TreatyTerms:
+  data retention content integer
+  data limit content integer
+  data reinstatements content integer
+  data reinstatementRateBps content integer
+  data inceptionDay content integer
+  data expiryDay content integer
+  data excludesFlood content boolean
+  data excludesEarthquake content boolean
+
+declaration structure Verdict:
+  data kind content VerdictKind
+  data citedClauses content list of Clause
+  data pending content list of PendingKind
+```

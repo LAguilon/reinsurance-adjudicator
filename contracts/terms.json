@@ -1,0 +1,10 @@
+{
+  "retention": 5000000,
+  "limit": 10000000,
+  "reinstatements": 2,
+  "reinstatementRateBps": 10000,
+  "inceptionDay": 0,
+  "expiryDay": 365,
+  "excludesFlood": true,
+  "excludesEarthquake": true
+}
