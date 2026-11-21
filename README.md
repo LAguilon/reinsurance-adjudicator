@@ -25,8 +25,11 @@ exclusions, certification, cover.
 ## Quick start
 
 ```bash
-export PATH=/tmp/catala-root/usr/bin:$PATH   # or wherever `catala` lives
-export CATALA_PLUGINS=/tmp/catala-root/usr/libexec/catala
+# Requires `catala` >= 1.2 on PATH and a stdlib directory (see Environment).
+export CATALA=/path/to/catala
+export CATALA_STDLIB=/path/to/stdlib      # the directory holding Stdlib_en.catala_en
+export CATALA_RUNTIME_SRC=/path/to/runtime # the *.catala_en modules of the runtime
+export CATALA_PY_RUNTIME=/path/to/runtime/python/src/catala
 ./scripts/build.sh          # Catala typecheck + Python backend + Lean bridge
 python3 src/cli.py          # human report
 python3 src/cli.py --json   # machine-readable audit trail
@@ -93,7 +96,9 @@ reserving, multi-layer towers, currency. See `ReinsuranceLean`'s own scope note.
 
 * **Catala.** The build uses the `catala` binary and a stdlib directory. This
   environment used the 1.2.0 `.deb` extracted under `/tmp/catala-root`; the
-  runtime library had to be symlinked to `<prefix>/usr/lib/catala`.
+  runtime library had to be symlinked to `<prefix>/usr/lib/catala`. Nothing
+  under `/tmp` is committed: `scripts/build.sh` takes every path from the
+  environment variables shown in *Quick start*.
 * **`clerk` is not used.** It requires an OCaml toolchain (`zarith`) that is not
   installed here, so `clerk build` and `catala interpret` cannot run. The build
   script therefore drives `catala typecheck` and `catala python` directly and
