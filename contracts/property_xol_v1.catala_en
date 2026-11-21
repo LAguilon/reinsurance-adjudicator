@@ -13,6 +13,7 @@ declaration scope Screen:
   input claim content Claim
   input terms content TreatyTerms
   output isCyber content boolean
+  output cyberExcluded content boolean
   output isWar content boolean
   output isFlood content boolean
   output isEarthquake content boolean
@@ -59,6 +60,14 @@ scope Screen:
     -- Cyber : false
     -- War : false
 
+  # Cl. 5.1 — cyber is excluded, except that Cl. 5.1a writes the exclusion back
+  # when the cyber incident resulted in physical fire or explosion. The defeat
+  # is written as an explicit subtraction: Catala 1.2's `exception rule ...
+  # consequence not fulfilled` leaves the variable undefined when the exception
+  # fires, rather than false, so it cannot express "override to false" here.
+  definition cyberExcluded equals
+    isCyber and not claim.resultingFireOrExplosion
+
   # Clause order follows the wording: period, absolute exclusions, scheduled
   # exclusions, certification, cover.
   definition verdict equals
@@ -71,7 +80,7 @@ scope Screen:
       }
     # Cl. 5.1 — cyber is excluded, except for the Cl. 5.1a write-back where the
     # cyber incident results in physical fire or explosion.
-    else if isCyber and not claim.resultingFireOrExplosion then
+    else if cyberExcluded then
       Verdict {
         -- kind : Excluded
         -- citedClauses : [Cl_5_1_CyberExclusion]

@@ -72,7 +72,7 @@ An unlisted currency is a hard error. `Decimal("120000.00")` USD → `12000000`.
 A JSON float anywhere in a money field is a hard error: floats cannot represent
 cents and are rejected rather than coerced.
 
-### Cyber write-back (LMA5401-style)
+### Cyber write-back (LMA5401-style) — `Cl_5_1a_CyberResultingFireWriteBack`
 
 A cyber loss is excluded by `Cl_5_1_CyberExclusion` **unless** the cyber
 incident resulted in physical fire or explosion. In that case
@@ -82,6 +82,16 @@ write-back rather than the exclusion. The flag arrives as
 absent means false. The write-back sits after certification and litigation in
 the clause order, so an uncertified cyber claim is still `Incomplete`, not
 `Covered`.
+
+**Why the defeat is written as a subtraction.** Catala 1.2 has a defeasible
+`exception rule … consequence not fulfilled` form, and I tried it first. It
+parses and typechecks, but when the exception fires the variable becomes
+*undefined* rather than false, so the screen raises
+`no computation with valid conditions found` at run time. Until that construct
+can express "override to false", the exclusion is written as
+`isCyber and not claim.resultingFireOrExplosion` and the verdict cites whichever
+of the two clauses actually applied. The behaviour is the defeasible one; only
+the syntax is not.
 
 ### Perils
 
@@ -151,6 +161,9 @@ present it drives the reserve; otherwise `TotalIncurred` is used. Both are
    scale the loss first: `applyBps` floors, and flooring early loses cents.
 
 ## 6a. The HTML advice
+
+Four ready-to-open examples live in `output/`: `demo_covered.html`,
+`demo_cyber_writeback.html`, `demo_reserved.html`, `demo_excluded.html`.
 
 `python3 src/cli.py ... --report-html out.html` writes a self-contained page:
 certificate and claim header, colour-coded verdict badge, the verbatim text of

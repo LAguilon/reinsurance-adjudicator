@@ -56,10 +56,10 @@ QUERY_TEXT = {
 }
 
 BADGE = {
-    "Covered": ("#0f7b3f", "#e6f4ea", "COVERED"),
-    "Reserved": ("#8a5a00", "#fff4d6", "RESERVED"),
-    "Excluded": ("#a31b1b", "#fde8e8", "EXCLUDED"),
-    "Incomplete": ("#4a4a4a", "#eceff1", "INCOMPLETE"),
+    "Covered": ("#0f7b3f", "#e6f4ea", "AGREED FOR SETTLEMENT"),
+    "Reserved": ("#8a5a00", "#fff4d6", "RESERVE ADVISED"),
+    "Excluded": ("#a31b1b", "#fde8e8", "REJECTED"),
+    "Incomplete": ("#4a4a4a", "#eceff1", "PENDED QUERY"),
 }
 
 CSS = """
@@ -139,36 +139,45 @@ def render(result: dict, meta: dict) -> str:
     financial = ""
     s = result.get("settlement")
     r = result.get("reserve")
+    ground_up = meta.get("loss_amount_minor", 0)
+    retention = meta.get("retention_minor", 0)
+
+    def row(label, hundred, signed):
+        return (f"<tr><td>{html.escape(label)}</td><td>{hundred}</td>"
+                f"<td>{signed}</td></tr>")
+
     if s:
+        rows = "".join([
+            row("Ground-up loss", _money(ground_up, currency), "—"),
+            row("Layer retention", _money(retention, currency), "—"),
+            row("Ceded amount", _money(s["ceded100"], currency),
+                _money(s["reinsurerCeded"], currency)),
+            row("Reinstatement premium", _money(s["premium100"], currency),
+                _money(s["reinsurerPremium"], currency)),
+            row("Remaining aggregate capacity", _money(s["remainingAggregate"], currency), "—"),
+        ])
         financial = f"""
-        <h2>Settlement</h2>
+        <h2>Financial schedule</h2>
         <table>
-          <thead><tr><th>Basis</th><th>Ceded</th><th>Retained by cedent</th>
-          <th>Reinstatement premium</th><th>Remaining aggregate</th></tr></thead>
-          <tbody>
-            <tr><td>100%</td><td>{_money(s['ceded100'], currency)}</td>
-                <td>{_money(s['retainedByCedent'], currency)}</td>
-                <td>{_money(s['premium100'], currency)}</td>
-                <td>{_money(s['remainingAggregate'], currency)}</td></tr>
-            <tr><td>Signed line</td><td>{_money(s['reinsurerCeded'], currency)}</td>
-                <td>—</td><td>{_money(s['reinsurerPremium'], currency)}</td><td>—</td></tr>
-          </tbody>
+          <thead><tr><th></th><th>100% layer</th><th>Reinsurer signed line</th></tr></thead>
+          <tbody>{rows}</tbody>
         </table>"""
     elif r:
+        rows = "".join([
+            row("Proposed reserve", _money(r["cedent_proposed_ground_up"], currency), "—"),
+            row("Layer retention", _money(retention, currency), "—"),
+            row("Ceded reserve", _money(r["layer_100pct_reserve"], currency),
+                _money(r["reinsurer_reserve_share"], currency)),
+            row("Reinstatement premium due", _money(0, currency), _money(0, currency)),
+            row("Cash paid", _money(0, currency), _money(0, currency)),
+        ])
         financial = f"""
-        <h2>Reserve (no cash movement)</h2>
+        <h2>Reserve schedule (no cash movement)</h2>
         <table>
-          <thead><tr><th>Basis</th><th>Reserve</th><th>Cash paid</th>
-          <th>Reinstatement premium due</th></tr></thead>
-          <tbody>
-            <tr><td>100%</td><td>{_money(r['layer_100pct_reserve'], currency)}</td>
-                <td>{_money(0, currency)}</td><td>{_money(0, currency)}</td></tr>
-            <tr><td>Signed line</td><td>{_money(r['reinsurer_reserve_share'], currency)}</td>
-                <td>{_money(0, currency)}</td><td>{_money(0, currency)}</td></tr>
-          </tbody>
+          <thead><tr><th></th><th>100% layer</th><th>Reinsurer signed line</th></tr></thead>
+          <tbody>{rows}</tbody>
         </table>
-        <p class="sub">Cedent's proposed reserve: {_money(r['cedent_proposed_ground_up'], currency)}.
-        Capacity is not consumed by a reserve.</p>"""
+        <p class="sub">Capacity is not consumed by a reserve.</p>"""
 
     if s:
         proof = s["invariant"]

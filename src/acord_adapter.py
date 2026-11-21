@@ -110,13 +110,13 @@ def map_peril(code: str | None) -> str | None:
     return None if code is None else ACORD_PERIL_TO_INTERNAL.get(str(code).strip().upper())
 
 
-def map_flag(value) -> bool:
-    """Accept a JSON boolean or a boolean-ish string; default False."""
-    if isinstance(value, bool):
-        return value
+def map_flag(value, where: str) -> bool:
+    """Strict boolean: JSON true/false or null. Anything else is an error."""
     if value is None:
         return False
-    return str(value).strip().upper() in {"TRUE", "YES", "Y", "1"}
+    if isinstance(value, bool):
+        return value
+    raise AcordError(f"{where}: expected a JSON boolean, got {value!r}")
 
 
 def map_litigation(value: str | None) -> bool | None:
@@ -265,7 +265,12 @@ def acord_to_canonical(placing: dict, claim: dict) -> CanonicalClaim:
         certified=certified,
         litigation_final=litigation,
         resulting_fire_or_explosion=map_flag(
-            indicators.get("ResultingFireOrExplosion", movement.get("ResultingFireOrExplosion"))
+            (movement.get("LossDetails") or {}).get(
+                "ResultingFireOrExplosion",
+                indicators.get("ResultingFireOrExplosion",
+                              movement.get("ResultingFireOrExplosion")),
+            ),
+            "LossDetails.ResultingFireOrExplosion",
         ),
         proposed_reserve_minor=None
         if proposed is None

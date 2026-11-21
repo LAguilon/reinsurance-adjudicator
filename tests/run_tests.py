@@ -159,7 +159,31 @@ def main() -> int:
                       flags=canon2.flags or None)
     check("cyber without fire -> Excluded", res2.verdict == "Excluded")
 
-    # 21: floats are rejected at the boundary
+    # 21: HTML advice contains the badge, verbatim wording, figures and stamp
+    import report
+    claim = json.loads((ACORD / "sample_claim_cyber_writeback.json").read_text())
+    canon = acord_adapter.acord_to_canonical(placing, claim)
+    res = adjudicate(canon.as_internal_claim(), canon.as_internal_terms(),
+                     flags=canon.flags or None)
+    meta = {
+        "certificate_id": canon.certificate_id, "claim_id": canon.claim_id,
+        "currency": canon.currency, "participation_bps": canon.participation_bps,
+        "retention_minor": canon.retention_minor, "limit_minor": canon.limit_minor,
+        "peril": canon.peril, "date_of_loss": "2024-10-03",
+        "loss_amount_minor": canon.total_incurred_minor,
+    }
+    page = report.render(res.to_dict(), meta)
+    check("HTML is a full document", page.startswith("<!doctype html>"))
+    check("HTML badge AGREED FOR SETTLEMENT", "AGREED FOR SETTLEMENT" in page)
+    check("HTML has verbatim write-back wording",
+          "Notwithstanding Clause 5.1" in page)
+    check("HTML has signed-line figure", "17500.00 USD" in page)
+    check("HTML has the verification stamp", "INVARIANT_OK" in page)
+    check("HTML has the 100% column", "100% layer" in page)
+    check("HTML has no external asset",
+          "http://" not in page and "https://" not in page and "<script" not in page)
+
+    # 22: floats are rejected at the boundary
     try:
         acord_adapter.money_to_minor(120000.0, "USD", "test")
         check("float rejected", False, "no error raised")

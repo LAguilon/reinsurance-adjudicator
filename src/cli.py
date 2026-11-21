@@ -31,6 +31,7 @@ def meta_from_canonical(canon) -> dict:
         "limit_minor": canon.limit_minor,
         "peril": canon.peril or "—",
         "date_of_loss": day_to_iso(canon.date_of_loss),
+        "loss_amount_minor": canon.total_incurred_minor,
     }
 
 
@@ -44,6 +45,7 @@ def meta_from_internal(claim: dict, terms: dict) -> dict:
         "limit_minor": terms["limit"],
         "peril": claim.get("peril", "—"),
         "date_of_loss": day_to_iso(claim["incidentDay"]),
+        "loss_amount_minor": claim["lossAmount"],
     }
 
 

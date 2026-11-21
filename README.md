@@ -66,7 +66,7 @@ contracts/property_xol_v1.catala_en   the Screen scope
 contracts/terms.json          treaty under test
 contracts/claims.json         eight sample claims
 tests/test_property_xol.catala_en     fixture specification (8 edge cases)
-tests/run_tests.py            executes the fixtures (46 assertions)
+tests/run_tests.py            executes the fixtures (53 assertions)
 src/acord_adapter.py          ACORD GRLC ↔ canonical integers
 schemas/acord_grlc/           Placing and ClaimMovement samples
 docs/FACULTATIVE_GUIDE.md     operations and engineering guide
